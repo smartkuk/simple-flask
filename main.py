@@ -159,13 +159,15 @@ def remove_user(user_id: str):
 
 def validate_context_path(context_path: str) -> bool:
 
-    if not context_path.startswith("/"):
-        raise ValueError(
-            f"Context path must start with '/' string.(CONTEXT_PATH: {context_path})")
+    if context_path != "":
 
-    if len(context_path) != 1 and context_path.endswith("/"):
-        raise ValueError(
-            f"Context path must not end with '/' string.(CONTEXT_PATH: {context_path})")
+        if not context_path.startswith("/"):
+            raise ValueError(
+                f"Context path must start with '/' string.(CONTEXT_PATH: {context_path})")
+
+        if len(context_path) != 1 and context_path.endswith("/"):
+            raise ValueError(
+                f"Context path must not end with '/' string.(CONTEXT_PATH: {context_path})")
 
 
 def prepare_users():
