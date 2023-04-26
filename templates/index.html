@@ -7,7 +7,11 @@
 
 <body>
     <div class="container">
-        <h1 style="color:#093657">User List({{ version }})</h1>
+        {% if version == 'GREEN' %}
+        <h1 style="color:#093657">User List <span class="badge badge-success">{{ version }}</span></h1>
+        {% else %}
+        <h1 style="color:#093657">User List <span class="badge badge-primary">{{ version }}</span></h1>
+        {% endif %}
         <form action="/users" method="post">
             <div class="form-group">
                 <label for="userId">User ID</label>
@@ -35,7 +39,7 @@
                 <tr>
                     <td>{{user.user_id}}</td>
                     <td>{{user.user_name}}</td>
-                    <td>{{user.country}}</td>
+                    <td>{{user.country if user.country else ''}}</td>
                 </tr>
                 {% endfor %}
                 {% else %}
