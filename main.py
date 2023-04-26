@@ -6,6 +6,7 @@ from flask import request
 from os import environ
 
 app = Flask(__name__)
+VERSION = "BLUE" if "VERSION" not in environ else environ["VERSION"]
 
 
 class PrefixMiddleware(object):
@@ -28,11 +29,14 @@ class User:
     def __init__(self, **kwargs):
         self._user_id: str = None
         self._user_name: str = None
+        self._country: str = None
 
         if "user_id" in kwargs:
             self._user_id = kwargs["user_id"]
         if "user_name" in kwargs:
             self._user_name = kwargs["user_name"]
+        if "country" in kwargs:
+            self._country = kwargs["country"]
 
     @property
     def user_id(self) -> str:
@@ -50,6 +54,14 @@ class User:
     def user_name(self, value: str):
         self._user_name = value
 
+    @property
+    def country(self) -> str:
+        return self._country
+
+    @country.setter
+    def country(self, value: str):
+        self._country = value
+
     def __str__(self) -> str:
         return pprint.pformat(self.__dict__)
 
@@ -59,7 +71,8 @@ class User:
     def serialize(self) -> dict:
         return {
             "user_id": self.user_id,
-            "user_name": self.user_name
+            "user_name": self.user_name,
+            "country": self.country
         }
 
 
@@ -77,7 +90,7 @@ USERS: Dict[str, User] = {}
 
 @app.route("/")
 def hello_world():
-    return render_template("index.html", users=[user for _, user in USERS.items()])
+    return render_template("index.html", users=[user for _, user in USERS.items()], version=VERSION)
 
 
 @app.route("/health")
@@ -96,14 +109,24 @@ def get_header():
 @app.route("/users", methods=["POST"])
 def create_user():
     app.logger.debug(f"request: {request}")
-    if request.is_json is False:
-        abort(400, "Http header application/json is required")
+    if request.is_json is True:
+        # abort(400, "Http header application/json is required")
 
-    data = request.get_json()
-    user = User(**data)
-    USERS[user.user_id] = user
+        data = request.get_json()
+        user = User(**data)
+        USERS[user.user_id] = user
 
-    return jsonify(user), 200
+        return jsonify(user), 200
+
+    if "userId" in request.form and "userName" in request.form:
+        app.logger.info(f"request.form => {request.form}")
+        user = User(user_id=request.form['userId'],
+                    user_name=request.form['userName'])
+        USERS[user.user_id] = user
+
+        return render_template("index.html", users=[user for _, user in USERS.items()], version=VERSION)
+
+    abort(400, "Http header application/json is required")
 
 
 @app.route("/users", methods=["GET"], defaults={"user_id": None})
@@ -147,9 +170,12 @@ def validate_context_path(context_path: str) -> bool:
 
 def prepare_users():
     return {
-        "1": User(user_id="1", user_name="Trump"),
-        "2": User(user_id="2", user_name="Obama"),
-        "3": User(user_id="3", user_name="Biden"),
+        "1": User(user_id="1", user_name="Trump", country="US"),
+        "2": User(user_id="2", user_name="Obama", country="US"),
+        "3": User(user_id="3", user_name="Biden", country="US"),
+        "4": User(user_id="4", user_name="Washington", country="US"),
+        "5": User(user_id="5", user_name="Jefferson", country="US"),
+        "6": User(user_id="6", user_name="Kennedy", country="US"),
     }
 
 
