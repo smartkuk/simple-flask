@@ -1,7 +1,7 @@
 from json import JSONEncoder
 import pprint
 from typing import Dict
-from flask import Flask, jsonify,  abort
+from flask import Flask, jsonify,  abort, render_template
 from flask import request
 from os import environ
 
@@ -77,7 +77,7 @@ USERS: Dict[str, User] = {}
 
 @app.route("/")
 def hello_world():
-    return "<p>Hello, World!</p>"
+    return render_template("index.html", users=[user for _, user in USERS.items()])
 
 
 @app.route("/health")
@@ -145,8 +145,14 @@ def validate_context_path(context_path: str) -> bool:
             f"Context path must not end with '/' string.(CONTEXT_PATH: {context_path})")
 
 
-# curl http://localhost:5001/users
-# curl http://localhost:5001/users
+def prepare_users():
+    return {
+        "1": User(user_id="1", user_name="Trump"),
+        "2": User(user_id="2", user_name="Obama"),
+        "3": User(user_id="3", user_name="Biden"),
+    }
+
+
 if __name__ == "__main__":
 
     app.debug = True
@@ -162,6 +168,7 @@ if __name__ == "__main__":
             f"Configured Env CONTEXT_PATH: {environ['CONTEXT_PATH']}")
 
     port = environ["PORT"] if "PORT" in environ else 5001
+    USERS = prepare_users()
 
     app.logger.info(f"Expose port number {port}")
     app.run(host='0.0.0.0', port=port, debug=True)

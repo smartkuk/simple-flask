@@ -1,0 +1,35 @@
+<html>
+
+<head>
+    <title>Colorful Hello, World!</title>
+    <link href="static/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <h1 style="color:#093657"> Hello, Template!</h1>
+    <table class="table">
+        <thead>
+            <tr>
+                <td>User ID</td>
+                <td>User Name</td>
+            </tr>
+        </thead>
+        <tbody>
+            {% if users %}
+            {% for user in users %}
+            <tr>
+                <td>{{user.user_id}}</td>
+                <td>{{user.user_name}}</td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+                <td colspan="2">Not Found users</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+    <script src="static/js/bootstrap.min.js"></script>
+</body>
+
+</html>
