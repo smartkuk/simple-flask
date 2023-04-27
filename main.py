@@ -1,28 +1,19 @@
 from json import JSONEncoder
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
 import pprint
 from typing import Dict
-from flask import Flask, jsonify,  abort, render_template
+from flask import Flask, jsonify,  abort, redirect, render_template, url_for
 from flask import request
 from os import environ
 
 app = Flask(__name__)
 VERSION = "BLUE" if "VERSION" not in environ else environ["VERSION"]
-
-
-class PrefixMiddleware(object):
-
-    def __init__(self, app, prefix=''):
-        self.app = app
-        self.prefix = prefix
-
-    def __call__(self, environ, start_response):
-        if environ['PATH_INFO'].startswith(self.prefix):
-            environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
-            environ['SCRIPT_NAME'] = self.prefix
-            return self.app(environ, start_response)
-
-        start_response('404', [('Content-Type', 'text/plain')])
-        return ["This url does not belong to the app.".encode()]
+CONTEXT_PATH = environ["CONTEXT_PATH"] if "CONTEXT_PATH" in environ else "/"
+PORT = environ["PORT"] if "PORT" in environ else 5001
+VERBOSE = False
+if "VERBOSE" in environ:
+    if environ["VERBOSE"] == "True":
+        VERBOSE = True
 
 
 class User:
@@ -85,12 +76,14 @@ class SimpleJSONEncoder(JSONEncoder):
 
 app.json_encoder = SimpleJSONEncoder
 
+
 USERS: Dict[str, User] = {}
 
 
 @app.route("/")
-def hello_world():
-    return render_template("index.html", users=[user for _, user in USERS.items()], version=VERSION)
+# @app.route("/flask")
+def render_page():
+    return render_template("index.html", users=[user for _, user in USERS.items()], version=VERSION, envs=[{"key": k, "value": v} for k, v in environ.items()])
 
 
 @app.route("/health")
@@ -110,7 +103,6 @@ def get_header():
 def create_user():
     app.logger.debug(f"request: {request}")
     if request.is_json is True:
-        # abort(400, "Http header application/json is required")
 
         data = request.get_json()
         user = User(**data)
@@ -121,10 +113,11 @@ def create_user():
     if "userId" in request.form and "userName" in request.form:
         app.logger.info(f"request.form => {request.form}")
         user = User(user_id=request.form['userId'],
-                    user_name=request.form['userName'])
+                    user_name=request.form['userName'],
+                    country=request.form['country'])
         USERS[user.user_id] = user
 
-        return render_template("index.html", users=[user for _, user in USERS.items()], version=VERSION)
+        return redirect(url_for("render_page"))
 
     abort(400, "Http header application/json is required")
 
@@ -175,28 +168,35 @@ def prepare_users():
         "1": User(user_id="1", user_name="Trump", country="US"),
         "2": User(user_id="2", user_name="Obama", country="US"),
         "3": User(user_id="3", user_name="Biden", country="US"),
-        "4": User(user_id="4", user_name="Washington", country="US"),
-        "5": User(user_id="5", user_name="Jefferson", country="US"),
-        "6": User(user_id="6", user_name="Kennedy", country="US"),
+        "4": User(user_id="4", user_name="Jefferson", country="US"),
+        "5": User(user_id="5", user_name="Kennedy", country="US"),
     }
 
 
+@app.before_request
+def verbose():
+    if VERBOSE is True:
+        app.logger.info(f"request: {request}")
+
+
+@app.after_request
+def add_header(response):
+    response.headers['version'] = VERSION
+    return response
+
+
 if __name__ == "__main__":
-
-    app.debug = True
-    app.wsgi_app = PrefixMiddleware(app.wsgi_app)
-
-    if "CONTEXT_PATH" in environ:
-
-        validate_context_path(environ['CONTEXT_PATH'])
-
-        app.wsgi_app = PrefixMiddleware(
-            app.wsgi_app, prefix=environ["CONTEXT_PATH"])
-        app.logger.info(
-            f"Configured Env CONTEXT_PATH: {environ['CONTEXT_PATH']}")
-
-    port = environ["PORT"] if "PORT" in environ else 5001
+    validate_context_path(CONTEXT_PATH)
     USERS = prepare_users()
 
-    app.logger.info(f"Expose port number {port}")
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.debug = True
+    app.logger.info(f"""
+Env List
+VERSION      : {VERSION}
+VERBOSE      : {VERBOSE}
+CONTEXT_PATH : {CONTEXT_PATH}
+PORT         : {PORT}""")
+
+    if CONTEXT_PATH and CONTEXT_PATH != "/":
+        app.wsgi_app = DispatcherMiddleware(app, {CONTEXT_PATH: app.wsgi_app})
+    app.run(host='0.0.0.0', port=PORT, debug=True)
