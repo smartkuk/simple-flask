@@ -191,6 +191,14 @@
 docker build -t simple-flask:v1 .
 ```
 
+```sh
+docker tag simple-flask:v1 <DOCKER_HUB_USER_NAME>/simple-flask:v1
+```
+
+```sh
+docker push <DOCKER_HUB_USER_NAME>/simple-flask:v1
+```
+
 ---
 
 ## Docker 이미지 실행
