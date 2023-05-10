@@ -215,6 +215,8 @@ if __name__ == "__main__":
                         help="Just version for print and response")
     parser.add_argument("--owner", type=str,
                         help="Just owner for print and response")
+    parser.add_argument("--host", type=str, default="127.0.0.1",
+                        help="If you want to allow connections from outside, use the 0.0.0.0 address.")
     args = parser.parse_args()
 
     USERS = prepare_users()
@@ -237,4 +239,4 @@ PORT         : {PORT}""")
 
     if CONTEXT_PATH and CONTEXT_PATH != "/":
         app.wsgi_app = DispatcherMiddleware(app, {CONTEXT_PATH: app.wsgi_app})
-    app.run(host='0.0.0.0', port=PORT, debug=True)
+    app.run(host=args.host, port=PORT, debug=True)
