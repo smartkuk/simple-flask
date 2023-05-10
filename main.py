@@ -88,12 +88,12 @@ def render_page():
 
 @app.route("/health")
 def get_health_check():
-    return jsonify({"status": "OK"})
+    return jsonify({"status": "OK", "version": VERSION})
 
 
 @app.route("/header")
 def get_header():
-    data = {}
+    data = {"version": VERSION}
     for key in request.headers.keys():
         data[key] = request.headers.get(key, "")
     return jsonify(data)
@@ -127,17 +127,17 @@ def create_user():
 def get_users(user_id: str):
     if user_id:
         if user_id in USERS:
-            return jsonify(USERS[user_id]), 200
+            return jsonify({"user": USERS[user_id], "version": VERSION}), 200
         return jsonify(message=f"Not found user by user_id={user_id}"), 404
 
     if "user_name" in request.args:
         user_name = request.args.get('user_name')
         for _, user in USERS.items():
             if user.user_name == user_name:
-                return jsonify(user), 200
+                return jsonify({"user": user, "version": VERSION}), 200
         return jsonify(message=f"Not found user by user_name={user_name}"), 404
 
-    return jsonify([user for _, user in USERS.items()]), 200
+    return jsonify({"users": [user for _, user in USERS.items()], "version": VERSION}), 200
 
 
 @app.route("/users/<user_id>", methods=["DELETE"])
