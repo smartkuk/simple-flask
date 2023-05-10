@@ -1,3 +1,4 @@
+import argparse
 from json import JSONEncoder
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 import pprint
@@ -14,6 +15,8 @@ VERBOSE = False
 if "VERBOSE" in environ:
     if environ["VERBOSE"] == "True":
         VERBOSE = True
+ENABLE_ARGS = False
+ARGS = {}
 
 
 class User:
@@ -87,12 +90,16 @@ def render_page():
 
 @app.route("/health")
 def get_health_check():
+    if ENABLE_ARGS is True:
+        return jsonify({"status": "OK", "version": VERSION, "arguments": ARGS})
     return jsonify({"status": "OK", "version": VERSION})
 
 
 @app.route("/header")
 def get_header():
     data = {"version": VERSION}
+    if ENABLE_ARGS is True:
+        data["arguments"] = ARGS
     for key in request.headers.keys():
         data[key] = request.headers.get(key, "")
     return jsonify(data)
@@ -126,17 +133,26 @@ def create_user():
 def get_users(user_id: str):
     if user_id:
         if user_id in USERS:
-            return jsonify({"user": USERS[user_id], "version": VERSION}), 200
+            result = {"user": USERS[user_id], "version": VERSION}
+            if ENABLE_ARGS is True:
+                result["arguments"] = ARGS
+            return jsonify(result), 200
         return jsonify(message=f"Not found user by user_id={user_id}"), 404
 
     if "user_name" in request.args:
         user_name = request.args.get('user_name')
         for _, user in USERS.items():
             if user.user_name == user_name:
-                return jsonify({"user": user, "version": VERSION}), 200
+                result = {"user": user, "version": VERSION}
+                if ENABLE_ARGS is True:
+                    result["arguments"] = ARGS
+                return jsonify(result), 200
         return jsonify(message=f"Not found user by user_name={user_name}"), 404
 
-    return jsonify({"users": [user for _, user in USERS.items()], "version": VERSION}), 200
+    result = {"users": [user for _, user in USERS.items()], "version": VERSION}
+    if ENABLE_ARGS is True:
+        result["arguments"] = ARGS
+    return jsonify(result), 200
 
 
 @app.route("/users/<user_id>", methods=["DELETE"])
@@ -190,9 +206,28 @@ def add_header(response):
 
 if __name__ == "__main__":
     validate_context_path(CONTEXT_PATH)
+
+    parser = argparse.ArgumentParser(
+        prog='Simple-Flask', description='Web application for testing')
+    parser.add_argument("--enable", action="store_true",
+                        help="Enable to print and response arguments from user inputs")
+    parser.add_argument("--version", type=str,
+                        help="Just version for print and response")
+    parser.add_argument("--owner", type=str,
+                        help="Just owner for print and response")
+    args = parser.parse_args()
+
     USERS = prepare_users()
 
     app.debug = True
+    ENABLE_ARGS = args.enable
+    if ENABLE_ARGS is True:
+        app.logger.info(f"Enable ARGS => {args}")
+        if args.version:
+            ARGS["version"] = args.version
+        if args.owner:
+            ARGS["owner"] = args.owner
+
     app.logger.info(f"""
 Env List
 VERSION      : {VERSION}
