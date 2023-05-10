@@ -81,7 +81,6 @@ USERS: Dict[str, User] = {}
 
 
 @app.route("/")
-# @app.route("/flask")
 def render_page():
     return render_template("index.html", users=[user for _, user in USERS.items()], version=VERSION, envs=[{"key": k, "value": v} for k, v in environ.items()])
 
@@ -177,6 +176,10 @@ def prepare_users():
 def verbose():
     if VERBOSE is True:
         app.logger.info(f"request: {request}")
+        app.logger.info(f"request path: {request.path}")
+
+    if request.path is None or request.path == "":
+        return redirect(url_for("render_page"))
 
 
 @app.after_request
