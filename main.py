@@ -106,8 +106,10 @@ def create_user():
 
         data = request.get_json()
         user = User(**data)
-        USERS[user.user_id] = user
+        if user.user_id in USERS:
+            abort(400, f"user_id {user.user_id} is already exist.")
 
+        USERS[user.user_id] = user
         return jsonify(user), 200
 
     if "userId" in request.form and "userName" in request.form:
@@ -115,8 +117,10 @@ def create_user():
         user = User(user_id=request.form['userId'],
                     user_name=request.form['userName'],
                     country=request.form['country'])
-        USERS[user.user_id] = user
+        if user.user_id in USERS:
+            abort(400, f"user_id {user.user_id} is already exist.")
 
+        USERS[user.user_id] = user
         return redirect(url_for("render_page"))
 
     abort(400, "Http header application/json is required")
