@@ -107,7 +107,7 @@ def create_user():
         data = request.get_json()
         user = User(**data)
         if user.user_id in USERS:
-            return jsonify(message=f"user_id {user.user_id} is already exist."), 400
+            return jsonify(message=f"user_id {user.user_id} is already exist.", status_code=400), 400
 
         USERS[user.user_id] = user
         return jsonify(user), 200
@@ -118,12 +118,12 @@ def create_user():
                     user_name=request.form['userName'],
                     country=request.form['country'])
         if user.user_id in USERS:
-            return jsonify(message=f"user_id {user.user_id} is already exist."), 400
+            return jsonify(message=f"user_id {user.user_id} is already exist.", status_code=400), 400
 
         USERS[user.user_id] = user
         return redirect(url_for("render_page"))
 
-    return jsonify(message="Http header application/json is required"), 400
+    return jsonify(message="Http header application/json is required", status_code=400), 400
 
 
 @app.route("/users", methods=["GET"], defaults={"user_id": None})
@@ -133,7 +133,7 @@ def get_users(user_id: str):
         if user_id in USERS:
             result = {"user": USERS[user_id], "version": VERSION}
             return jsonify(result), 200
-        return jsonify(message=f"Not found user by user_id={user_id}"), 404
+        return jsonify(message=f"Not found user by user_id={user_id}", status_code=404), 404
 
     if "user_name" in request.args:
         user_name = request.args.get('user_name')
@@ -141,7 +141,7 @@ def get_users(user_id: str):
             if user.user_name == user_name:
                 result = {"user": user, "version": VERSION}
                 return jsonify(result), 200
-        return jsonify(message=f"Not found user by user_name={user_name}"), 404
+        return jsonify(message=f"Not found user by user_name={user_name}", status_code=404), 404
 
     result = {"users": [user for _, user in USERS.items()], "version": VERSION}
     return jsonify(result), 200
@@ -154,7 +154,7 @@ def remove_user(user_id: str):
         del USERS[user_id]
         return jsonify(user), 200
 
-    return jsonify(message=f"Not found user by user_id={user_id}"), 404
+    return jsonify(message=f"Not found user by user_id={user_id}", status_code=404), 404
 
 
 def validate_context_path(context_path: str) -> bool:
