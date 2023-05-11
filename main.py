@@ -106,6 +106,7 @@ def render_page():
     return render_template("index.html", users=[user for _, user in USERS.items()], version=VERSION, envs=[{"key": k, "value": v} for k, v in environ.items()])
 
 
+@app.route("/health")
 @app.route(URI_PATHS["HEALTH"])
 def get_health_check():
     return jsonify({"status": "OK", "version": VERSION})
