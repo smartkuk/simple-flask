@@ -8,5 +8,6 @@ RUN pip3 install -r requirements.txt
 ENV VERSION="BLUE"
 ENV CONTEXT_PATH=""
 ENV PORT="5001"
+ENV HOST="0.0.0.0"
 
-CMD ["python3", "-m", "main", "run", "--host=0.0.0.0"]
+CMD ["python3", "-m", "main", "run"]

@@ -1,5 +1,3 @@
-
-from argparse import ArgumentParser
 from json import JSONEncoder
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 import pprint
@@ -11,6 +9,7 @@ from os import environ
 app = Flask(__name__)
 VERSION = "BLUE" if "VERSION" not in environ else environ["VERSION"]
 CONTEXT_PATH = environ["CONTEXT_PATH"] if "CONTEXT_PATH" in environ else "/"
+HOST = environ["HOST"] if "HOST" in environ else "127.0.0.1"
 PORT = environ["PORT"] if "PORT" in environ else 5001
 VERBOSE = False
 if "VERBOSE" in environ:
@@ -194,12 +193,6 @@ def add_header(response):
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description="Run simple flask web app")
-    parser.add_argument("--host", type=str,
-                        default="127.0.0.1", help="Run with ip address")
-    parser.add_argument("--port", type=str, help="Listen port number")
-    args = parser.parse_args()
-
     validate_context_path(CONTEXT_PATH)
     USERS = prepare_users()
 
@@ -209,14 +202,9 @@ Env List
 VERSION      : {VERSION}
 VERBOSE      : {VERBOSE}
 CONTEXT_PATH : {CONTEXT_PATH}
-PORT         : {PORT}
-ARGUMENTS    : {args}""")
-    app.logger.info(f"""
-Arguments
---host : {args.host}
---port : {args.port}""")
-    port_number = args.port if args.port else PORT
+HOST         : {HOST}
+PORT         : {PORT}""")
 
     if CONTEXT_PATH and CONTEXT_PATH != "/":
         app.wsgi_app = DispatcherMiddleware(app, {CONTEXT_PATH: app.wsgi_app})
-    app.run(host=args.host, port=port_number, debug=True)
+    app.run(host=HOST, port=PORT, debug=True)
