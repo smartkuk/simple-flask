@@ -8,7 +8,7 @@ from os import environ
 
 app = Flask(__name__)
 VERSION = "BLUE" if "VERSION" not in environ else environ["VERSION"]
-CONTEXT_PATH = environ["CONTEXT_PATH"] if "CONTEXT_PATH" in environ else "/"
+# CONTEXT_PATH = environ["CONTEXT_PATH"] if "CONTEXT_PATH" in environ else "/"
 HOST = environ["HOST"] if "HOST" in environ else "127.0.0.1"
 PORT = environ["PORT"] if "PORT" in environ else 5001
 VERBOSE = False
@@ -197,7 +197,7 @@ def add_header(response):
 
 
 if __name__ == "__main__":
-    validate_context_path(CONTEXT_PATH)
+    # validate_context_path(CONTEXT_PATH)
     USERS = prepare_users()
 
     app.debug = True
@@ -205,10 +205,16 @@ if __name__ == "__main__":
 Env List
 VERSION      : {VERSION}
 VERBOSE      : {VERBOSE}
-CONTEXT_PATH : {CONTEXT_PATH}
 HOST         : {HOST}
 PORT         : {PORT}""")
+#     app.logger.info(f"""
+# Env List
+# VERSION      : {VERSION}
+# VERBOSE      : {VERBOSE}
+# CONTEXT_PATH : {CONTEXT_PATH}
+# HOST         : {HOST}
+# PORT         : {PORT}""")
 
-    if CONTEXT_PATH and CONTEXT_PATH != "/":
-        app.wsgi_app = DispatcherMiddleware(app, {CONTEXT_PATH: app.wsgi_app})
+    # if CONTEXT_PATH and CONTEXT_PATH != "/":
+    #     app.wsgi_app = DispatcherMiddleware(app, {CONTEXT_PATH: app.wsgi_app})
     app.run(host=HOST, port=PORT, debug=True)
