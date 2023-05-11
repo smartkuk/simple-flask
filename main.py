@@ -8,13 +8,33 @@ from os import environ
 
 app = Flask(__name__)
 VERSION = "BLUE" if "VERSION" not in environ else environ["VERSION"]
-# CONTEXT_PATH = environ["CONTEXT_PATH"] if "CONTEXT_PATH" in environ else "/"
+CONTEXT_PATH = environ["CONTEXT_PATH"] if "CONTEXT_PATH" in environ else "/"
 HOST = environ["HOST"] if "HOST" in environ else "127.0.0.1"
 PORT = environ["PORT"] if "PORT" in environ else 5001
 VERBOSE = False
 if "VERBOSE" in environ:
     if environ["VERBOSE"] == "True":
         VERBOSE = True
+
+
+URI_PATHS = {
+    "INDEX": "/",
+    "HEALTH": "/health",
+    "HEADER": "/header",
+    "USERS": "/users"
+}
+
+if CONTEXT_PATH != "/":
+    ctx_path = CONTEXT_PATH
+    if ctx_path.startswith("/") is False:
+        ctx_path = f"/{ctx_path}"
+    if ctx_path.endswith("/") is True:
+        ctx_path = ctx_path[0:len(ctx_path)-1]
+
+    URI_PATHS["INDEX"] = f"{ctx_path}/"
+    URI_PATHS["HEALTH"] = f"{ctx_path}/health"
+    URI_PATHS["HEADER"] = f"{ctx_path}/header"
+    URI_PATHS["USERS"] = f"{ctx_path}/users"
 
 
 class User:
@@ -81,17 +101,17 @@ app.json_encoder = SimpleJSONEncoder
 USERS: Dict[str, User] = {}
 
 
-@app.route("/")
+@app.route(URI_PATHS["INDEX"])
 def render_page():
     return render_template("index.html", users=[user for _, user in USERS.items()], version=VERSION, envs=[{"key": k, "value": v} for k, v in environ.items()])
 
 
-@app.route("/health")
+@app.route(URI_PATHS["HEALTH"])
 def get_health_check():
     return jsonify({"status": "OK", "version": VERSION})
 
 
-@app.route("/header")
+@app.route(URI_PATHS["HEADER"])
 def get_header():
     data = {"version": VERSION}
     for key in request.headers.keys():
@@ -99,7 +119,7 @@ def get_header():
     return jsonify(data)
 
 
-@app.route("/users", methods=["POST"])
+@app.route(URI_PATHS["USERS"], methods=["POST"])
 def create_user():
     app.logger.debug(f"request: {request}")
     if request.is_json is True:
@@ -126,8 +146,8 @@ def create_user():
     return jsonify(message="Http header application/json is required", status_code=400), 400
 
 
-@app.route("/users", methods=["GET"], defaults={"user_id": None})
-@app.route("/users/<user_id>", methods=["GET"])
+@app.route(URI_PATHS["USERS"], methods=["GET"], defaults={"user_id": None})
+@app.route(f"{URI_PATHS['USERS']}/<user_id>", methods=["GET"])
 def get_users(user_id: str):
     if user_id:
         if user_id in USERS:
@@ -147,7 +167,7 @@ def get_users(user_id: str):
     return jsonify(result), 200
 
 
-@app.route("/users/<user_id>", methods=["DELETE"])
+@app.route(f"{URI_PATHS['USERS']}/<user_id>", methods=["DELETE"])
 def remove_user(user_id: str):
     if user_id in USERS:
         user = USERS[user_id]
@@ -197,7 +217,6 @@ def add_header(response):
 
 
 if __name__ == "__main__":
-    # validate_context_path(CONTEXT_PATH)
     USERS = prepare_users()
 
     app.debug = True
@@ -205,16 +224,32 @@ if __name__ == "__main__":
 Env List
 VERSION      : {VERSION}
 VERBOSE      : {VERBOSE}
+CONTEXT_PATH : {CONTEXT_PATH}
 HOST         : {HOST}
 PORT         : {PORT}""")
-#     app.logger.info(f"""
-# Env List
-# VERSION      : {VERSION}
-# VERBOSE      : {VERBOSE}
-# CONTEXT_PATH : {CONTEXT_PATH}
-# HOST         : {HOST}
-# PORT         : {PORT}""")
 
-    # if CONTEXT_PATH and CONTEXT_PATH != "/":
-    #     app.wsgi_app = DispatcherMiddleware(app, {CONTEXT_PATH: app.wsgi_app})
+    for rule in app.url_map.iter_rules():
+        app.logger.info(f"route rule: {rule} {rule.methods}")
+
+    # if CONTEXT_PATH != "/":
+    #     ctx_path = CONTEXT_PATH
+    #     if ctx_path.startswith("/") is False:
+    #         ctx_path = f"/{ctx_path}"
+
+    #     if ctx_path.endswith("/") is True:
+    #         ctx_path = ctx_path[0:len(ctx_path)-1]
+
+    #     try:
+    #         for rule in app.url_map.iter_rules('static'):
+    #             app.url_map._rules.remove(rule)
+
+    #     except ValueError:
+    #         pass
+
+    #     app.static_url_path = f'{ctx_path}/static'
+    #     app.add_url_rule(
+    #         app.static_url_path + '/<path:filename>',
+    #         endpoint='static', view_func=app.send_static_file)
+
     app.run(host=HOST, port=PORT, debug=True)
+# https://flask-docs-kr.readthedocs.io/ko/latest/patterns/appdispatch.html
