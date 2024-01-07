@@ -1,8 +1,9 @@
 from json import JSONEncoder
+import socket
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 import pprint
 from typing import Dict
-from flask import Flask, jsonify,  abort, redirect, render_template, url_for
+from flask import Flask, jsonify, abort, redirect, render_template, url_for
 from flask import request
 from os import environ
 
@@ -21,7 +22,8 @@ URI_PATHS = {
     "INDEX": "/",
     "HEALTH": "/health",
     "HEADER": "/header",
-    "USERS": "/users"
+    "USERS": "/users",
+    "NAME": "/name",
 }
 
 if CONTEXT_PATH != "/":
@@ -29,12 +31,13 @@ if CONTEXT_PATH != "/":
     if ctx_path.startswith("/") is False:
         ctx_path = f"/{ctx_path}"
     if ctx_path.endswith("/") is True:
-        ctx_path = ctx_path[0:len(ctx_path)-1]
+        ctx_path = ctx_path[0 : len(ctx_path) - 1]
 
     URI_PATHS["INDEX"] = f"{ctx_path}/"
     URI_PATHS["HEALTH"] = f"{ctx_path}/health"
     URI_PATHS["HEADER"] = f"{ctx_path}/header"
     URI_PATHS["USERS"] = f"{ctx_path}/users"
+    URI_PATHS["NAME"] = f"{ctx_path}/name"
 
 
 class User:
@@ -84,7 +87,7 @@ class User:
         return {
             "user_id": self.user_id,
             "user_name": self.user_name,
-            "country": self.country
+            "country": self.country,
         }
 
 
@@ -103,7 +106,17 @@ USERS: Dict[str, User] = {}
 
 @app.route(URI_PATHS["INDEX"])
 def render_page():
-    return render_template("index.html", users=[user for _, user in USERS.items()], version=VERSION, envs=[{"key": k, "value": v} for k, v in environ.items()])
+    return render_template(
+        "index.html",
+        users=[user for _, user in USERS.items()],
+        version=VERSION,
+        envs=[{"key": k, "value": v} for k, v in environ.items()],
+    )
+
+
+@app.route(URI_PATHS["NAME"])
+def get_hostname():
+    return jsonify(socket.gethostbyname())
 
 
 @app.route("/health")
@@ -124,27 +137,41 @@ def get_header():
 def create_user():
     app.logger.debug(f"request: {request}")
     if request.is_json is True:
-
         data = request.get_json()
         user = User(**data)
         if user.user_id in USERS:
-            return jsonify(message=f"user_id {user.user_id} is already exist.", status_code=400), 400
+            return (
+                jsonify(
+                    message=f"user_id {user.user_id} is already exist.", status_code=400
+                ),
+                400,
+            )
 
         USERS[user.user_id] = user
         return jsonify(user), 200
 
     if "userId" in request.form and "userName" in request.form:
         app.logger.info(f"request.form => {request.form}")
-        user = User(user_id=request.form['userId'],
-                    user_name=request.form['userName'],
-                    country=request.form['country'])
+        user = User(
+            user_id=request.form["userId"],
+            user_name=request.form["userName"],
+            country=request.form["country"],
+        )
         if user.user_id in USERS:
-            return jsonify(message=f"user_id {user.user_id} is already exist.", status_code=400), 400
+            return (
+                jsonify(
+                    message=f"user_id {user.user_id} is already exist.", status_code=400
+                ),
+                400,
+            )
 
         USERS[user.user_id] = user
         return redirect(url_for("render_page"))
 
-    return jsonify(message="Http header application/json is required", status_code=400), 400
+    return (
+        jsonify(message="Http header application/json is required", status_code=400),
+        400,
+    )
 
 
 @app.route(URI_PATHS["USERS"], methods=["GET"], defaults={"user_id": None})
@@ -154,15 +181,23 @@ def get_users(user_id: str):
         if user_id in USERS:
             result = {"user": USERS[user_id], "version": VERSION}
             return jsonify(result), 200
-        return jsonify(message=f"Not found user by user_id={user_id}", status_code=404), 404
+        return (
+            jsonify(message=f"Not found user by user_id={user_id}", status_code=404),
+            404,
+        )
 
     if "user_name" in request.args:
-        user_name = request.args.get('user_name')
+        user_name = request.args.get("user_name")
         for _, user in USERS.items():
             if user.user_name == user_name:
                 result = {"user": user, "version": VERSION}
                 return jsonify(result), 200
-        return jsonify(message=f"Not found user by user_name={user_name}", status_code=404), 404
+        return (
+            jsonify(
+                message=f"Not found user by user_name={user_name}", status_code=404
+            ),
+            404,
+        )
 
     result = {"users": [user for _, user in USERS.items()], "version": VERSION}
     return jsonify(result), 200
@@ -179,16 +214,16 @@ def remove_user(user_id: str):
 
 
 def validate_context_path(context_path: str) -> bool:
-
     if context_path != "":
-
         if not context_path.startswith("/"):
             raise ValueError(
-                f"Context path must start with '/' string.(CONTEXT_PATH: {context_path})")
+                f"Context path must start with '/' string.(CONTEXT_PATH: {context_path})"
+            )
 
         if len(context_path) != 1 and context_path.endswith("/"):
             raise ValueError(
-                f"Context path must not end with '/' string.(CONTEXT_PATH: {context_path})")
+                f"Context path must not end with '/' string.(CONTEXT_PATH: {context_path})"
+            )
 
 
 def prepare_users():
@@ -213,7 +248,7 @@ def verbose():
 
 @app.after_request
 def add_header(response):
-    response.headers['version'] = VERSION
+    response.headers["version"] = VERSION
     return response
 
 
@@ -221,13 +256,15 @@ if __name__ == "__main__":
     USERS = prepare_users()
 
     app.debug = True
-    app.logger.info(f"""
+    app.logger.info(
+        f"""
 Env List
 VERSION      : {VERSION}
 VERBOSE      : {VERBOSE}
 CONTEXT_PATH : {CONTEXT_PATH}
 HOST         : {HOST}
-PORT         : {PORT}""")
+PORT         : {PORT}"""
+    )
 
     for rule in app.url_map.iter_rules():
         app.logger.info(f"route rule: {rule} {rule.methods}")
