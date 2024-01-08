@@ -116,7 +116,7 @@ def render_page():
 
 @app.route(URI_PATHS["NAME"])
 def get_hostname():
-    return jsonify(socket.gethostbyname())
+    return jsonify(socket.gethostname())
 
 
 @app.route("/health")
