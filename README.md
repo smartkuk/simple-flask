@@ -194,10 +194,12 @@ docker build -t simple-flask:v1 .
 ```sh
 DOCKER_HUB_USER_NAME=""
 docker tag simple-flask:v1 $DOCKER_HUB_USER_NAME/simple-flask:v1
+docker tag simple-flask:v1 $DOCKER_HUB_USER_NAME/junit-helper:v1
 ```
 
 ```sh
 docker push $DOCKER_HUB_USER_NAME/simple-flask:v1
+docker push $DOCKER_HUB_USER_NAME/junit-helper:v1
 ```
 
 ---
